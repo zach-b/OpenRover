@@ -16,7 +16,6 @@ import binascii
 import openvisualizer.openvisualizer_utils as u
 
 from pydispatch import dispatcher
-from openvisualizer.openTun    import openTun
 
 class eventBusMonitor(object):
     
