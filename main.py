@@ -3,6 +3,7 @@ import os
 import logging
 import json
 import signal
+import threading
 
 log = logging.getLogger('openVisualizerApp')
 
@@ -31,7 +32,9 @@ class OpenVisualizerApp(object):
         self.moteConnectors       = [
             moteConnector.moteConnector(mp.getPortName()) for mp in self.moteProbes
         ]
-        self.remoteConnector = remoteConnector.remoteConnector()
+        self.remoteSender = remoteConnector.remoteSender()
+        self.remoteReceiver = remoteConnector.remoteReceiver()
+        threading.Thread(target = self.remoteReceiver.run())
 
     #======================== public ==========================================
 
