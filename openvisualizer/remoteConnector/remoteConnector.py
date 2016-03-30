@@ -10,6 +10,7 @@ log.addHandler(logging.NullHandler())
 
 import threading
 import zmq
+import json
 
 from openvisualizer.eventBus      import eventBusClient
 from openvisualizer.moteState     import moteState
@@ -116,7 +117,7 @@ class remoteSender(eventBusClient.eventBusClient):
         self.iplist.append(ip)
 
 
-class remoteReceiver(eventBusClient.eventBusClient):
+class remoteReceiver(eventBusClient.eventBusClient, threading.Thread):
 
 
     def __init__(self, iplist=[]):
@@ -130,18 +131,23 @@ class remoteReceiver(eventBusClient.eventBusClient):
         self._subcribedDataForDagRoot  = False
         self.iplist = iplist
 
+        # initialize the parent class
+        threading.Thread.__init__(self)
         # give this thread a name
         self.name = 'remoteReceiver'
+        self.daemon           = True
+        self.start()
+
 
     def run(self, ip='localhost', port="50001"):
-        print 'test'
         context = zmq.Context()
         subscriber = context.socket(zmq.SUB)
         subscriber.connect("tcp://%s:%s" % (ip, port))
+        subscriber.setsockopt(zmq.SUBSCRIBE, "")
         print 'Sub started'
         while True :
             event = subscriber.recv_json()
-            print "Received remote event"
+            print "Received remote event"+json.dumps(event)
             del r['sender']
             self.dispatch(event)
 

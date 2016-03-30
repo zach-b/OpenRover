@@ -34,7 +34,6 @@ class OpenVisualizerApp(object):
         ]
         self.remoteSender = remoteConnector.remoteSender()
         self.remoteReceiver = remoteConnector.remoteReceiver()
-        threading.Thread(target = self.remoteReceiver.run())
 
     #======================== public ==========================================
 
