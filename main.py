@@ -12,6 +12,9 @@ from openvisualizer.moteProbe     import moteProbe
 from openvisualizer.moteConnector import moteConnector
 from openvisualizer.remoteConnector import remoteConnector
 
+from pydispatch import dispatcher
+
+
 class OpenVisualizerApp(object):
     '''
     Provides an application model for OpenVisualizer. Provides common,
@@ -32,8 +35,10 @@ class OpenVisualizerApp(object):
         self.moteConnectors       = [
             moteConnector.moteConnector(mp.getPortName()) for mp in self.moteProbes
         ]
-        self.remoteSender = remoteConnector.remoteSender()
-        self.remoteReceiver = remoteConnector.remoteReceiver()
+        print self.moteProbes[0].getPortName()
+
+        self.remoteConnector = remoteConnector.remoteConnector()
+
 
     #======================== public ==========================================
 

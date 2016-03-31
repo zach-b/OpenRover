@@ -14,12 +14,13 @@ import json
 
 from openvisualizer.eventBus      import eventBusClient
 from openvisualizer.moteState     import moteState
+from pydispatch import dispatcher
 
 
-class remoteSender(eventBusClient.eventBusClient):
+class remoteConnector(eventBusClient.eventBusClient):
 
 
-    def __init__(self, iplist=[]):
+    def __init__(self, PCip='localhost', PCport=50000):
 
         # log
         log.info("creating instance")
@@ -28,13 +29,18 @@ class remoteSender(eventBusClient.eventBusClient):
         self.stateLock                 = threading.Lock()
         self.networkPrefix             = None
         self._subcribedDataForDagRoot  = False
+        self.PCip                      = PCip
+        self.PCport                    = PCport
+
 
         self.context = zmq.Context()
         self.publisher = self.context.socket(zmq.PUB)
         self.publisher.bind("tcp://*:50000")
         print 'publisher started'
-        #threading.Thread(target=self.zmq_sub)
 
+        self.subscriber = self.context.socket(zmq.SUB)
+        self.subscriber.connect("tcp://%s:%s" % (self.PCip, self.PCport))
+        self.subscriber.setsockopt(zmq.SUBSCRIBE, "")
 
 
         # give this thread a name
@@ -57,56 +63,28 @@ class remoteSender(eventBusClient.eventBusClient):
             ]
         )
 
-class remoteSender(eventBusClient.eventBusClient):
+        t = threading.Thread(target=self._recvdFromRemote)
+        t.setDaemon(True)
+        t.start()
+        print 'subscriber started'
 
 
-    def __init__(self, iplist=[]):
-
-        # log
-        log.info("creating instance")
-
-        # local variables
-        self.stateLock                 = threading.Lock()
-        self.networkPrefix             = None
-        self._subcribedDataForDagRoot  = False
-        self.iplist = iplist
-
-        self.context = zmq.Context()
-        self.publisher = self.context.socket(zmq.PUB)
-        self.publisher.bind("tcp://*:50000")
-        print 'publisher started'
-        #threading.Thread(target=self.zmq_sub)
-
-
-
-        # give this thread a name
-        self.name = 'remoteConnector'
-
-        eventBusClient.eventBusClient.__init__(
-            self,
-            name             = self.name,
-            registrations =  [
-                {
-                    'sender'   : self.WILDCARD,
-                    'signal'   : 'fromMote.*',
-                    'callback' : self._sendToRemote_handler,
-                },
-                {
-                    'sender'   : self.WILDCARD,
-                    'signal'   : 'latency',
-                    'callback' : self._sendToRemote_handler,
-                },
-            ]
-        )
 
     #======================== eventBus interaction ============================
+    def _printer(self, sender, signal, data):
+        print 'sender : {0}, signal : {1}, data : {2}'.format(sender, signal, data)
 
     def _sendToRemote_handler(self,sender,signal,data):
 
         self.publisher.send_json({'sender' : sender, 'signal' : signal, 'data':data})
-        print 'msg sent'
+        self.printer(sender,signal,data)
 
-
+    def _recvdFromRemote(self):
+        while True:
+            event = self.subscriber.recv_json()
+            print "\nReceived remote event\n"+json.dumps(event)+"\nDispatching to event bus"
+            #Beware of the unicode-utf8 encoding on python2.7
+            dispatcher.send(signal=event['signal'].encode("utf8"), sender=event['sender'].encode("utf8"), data=event['data'])
 
     #======================== public ==========================================
 
@@ -115,40 +93,5 @@ class remoteSender(eventBusClient.eventBusClient):
 
     def addRaspi(self, ip):
         self.iplist.append(ip)
-
-
-class remoteReceiver(eventBusClient.eventBusClient, threading.Thread):
-
-
-    def __init__(self, iplist=[]):
-
-        # log
-        log.info("creating instance")
-
-        # local variables
-        self.stateLock                 = threading.Lock()
-        self.networkPrefix             = None
-        self._subcribedDataForDagRoot  = False
-        self.iplist = iplist
-
-        # initialize the parent class
-        threading.Thread.__init__(self)
-        # give this thread a name
-        self.name = 'remoteReceiver'
-        self.daemon           = True
-        self.start()
-
-
-    def run(self, ip='localhost', port="50001"):
-        context = zmq.Context()
-        subscriber = context.socket(zmq.SUB)
-        subscriber.connect("tcp://%s:%s" % (ip, port))
-        subscriber.setsockopt(zmq.SUBSCRIBE, "")
-        print 'Sub started'
-        while True :
-            event = subscriber.recv_json()
-            print "Received remote event"+json.dumps(event)
-            del r['sender']
-            self.dispatch(event)
 
 

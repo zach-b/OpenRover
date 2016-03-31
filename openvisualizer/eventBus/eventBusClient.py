@@ -110,7 +110,6 @@ class eventBusClient(object):
     #======================== private =========================================
     
     def _eventBusNotification(self,signal,sender,data):
-        
         callback = None
         
         # find the callback

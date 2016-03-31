@@ -29,7 +29,7 @@ class eventBusMonitor(object):
         # local variables
         self.dataLock                  = threading.Lock()
         self.stats                     = {}
-        self.wiresharkDebugEnabled     = False
+        self.wiresharkDebugEnabled     = True
         self.dagRootEui64              = [0x00]*8
         self.simMode                   = False
         
@@ -228,7 +228,7 @@ class eventBusMonitor(object):
         '''
         
         # UDP
-        udplen  = len(zep)+8
+        udplen  = lein(zep)+8
         
         udp     = [0x00,0x00]                   # src port (unused)
         udp    += [0x45,0x5a]                   # dest port (17754)

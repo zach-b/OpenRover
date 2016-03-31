@@ -87,13 +87,12 @@ class moteConnector(eventBusClient.eventBusClient):
     #======================== eventBus interaction ============================
     
     def _infoDagRoot_handler(self,sender,signal,data):
-        
         # I only care about "infoDagRoot" notifications about my mote
         if not data['serialPort']==self.serialport:
-            return 
+            return
         
         with self.stateLock:
-        
+
             if   data['isDAGroot']==1 and (not self._subcribedDataForDagRoot):
                 # this moteConnector is connected to a DAGroot
                 
