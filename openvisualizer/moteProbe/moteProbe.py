@@ -1,6 +1,6 @@
-# Copyright (c) 2010-2013, Regents of the University of California. 
-# All rights reserved. 
-#  
+# Copyright (c) 2010-2013, Regents of the University of California.
+# All rights reserved.
+#
 # Released under the BSD 3-Clause license as published at the link below.
 # https://openwsn.atlassian.net/wiki/display/OW/License
 import logging
@@ -35,13 +35,13 @@ BAUDRATE_WSN430 = 115200
 def findSerialPorts():
     '''
     Returns the serial ports of the motes connected to the computer.
-    
+
     :returns: A list of tuples (name,baudrate) where:
         - name is a strings representing a serial port, e.g. 'COM1'
         - baudrate is an int representing the baurate, e.g. 115200
     '''
     serialports = []
-    
+
     if os.name=='nt':
         path = 'HARDWARE\\DEVICEMAP\\SERIALCOMM'
         key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, path)
@@ -63,53 +63,43 @@ def findSerialPorts():
         else:
             portMask = '/dev/ttyUSB*'
         serialports = [(s,BAUDRATE_GINA) for s in glob.glob(portMask)]
-    
+
     # log
     log.info("discovered following COM port: {0}".format(['{0}@{1}'.format(s[0],s[1]) for s in serialports]))
-    
+
     return serialports
 
 #============================ class ===========================================
 
 class moteProbe(threading.Thread):
-    
+
     MODE_SERIAL    = 'serial'
     MODE_EMULATED  = 'emulated'
     MODE_IOTLAB    = 'IoT-LAB'
-    MODE_ROVER     = 'rover'
     MODE_ALL       = [
         MODE_SERIAL,
         MODE_EMULATED,
         MODE_IOTLAB,
-        MODE_ROVER
     ]
-    
-    def __init__(self,serialport=None,emulatedMote=None,iotlabmote=None, roverMote=None):
-        
+
+    def __init__(self,serialport=None,emulatedMote=None,iotlabmote=None):
+
         # verify params
         if   serialport:
             assert not emulatedMote
             assert not iotlabmote
-            assert not roverMote
             self.mode             = self.MODE_SERIAL
         elif emulatedMote:
             assert not serialport
             assert not iotlabmote
-            assert not roverMote
             self.mode             = self.MODE_EMULATED
         elif iotlabmote:
             assert not serialport
             assert not emulatedMote
-            assert not roverMote
             self.mode             = self.MODE_IOTLAB
-        elif roverMote :
-            assert not serialport
-            assert not emulatedMote
-            assert not iotlabmote
-            self.mode             = self.MODE_ROVER
         else:
             raise SystemError()
-        
+
         # store params
         if   self.mode==self.MODE_SERIAL:
             self.serialport       = serialport[0]
@@ -121,18 +111,15 @@ class moteProbe(threading.Thread):
         elif self.mode==self.MODE_IOTLAB:
             self.iotlabmote       = iotlabmote
             self.portname         = 'IoT-LAB{0}'.format(iotlabmote)
-        elif self.mode==self.MODE_ROVER:
-            self.roverMote        = roverMote
-            self.portname         = 'roverMote{0}'.format(roverMote)
         else:
             raise SystemError()
-        
+
         # log
         log.info("creating moteProbe attaching to {0}".format(
                 self.portname,
             )
         )
-        
+
         # local variables
         self.hdlc                 = OpenHdlc.OpenHdlc()
         self.lastRxByte           = self.hdlc.HDLC_FLAG
@@ -143,39 +130,39 @@ class moteProbe(threading.Thread):
         self.dataLock             = threading.Lock()
         # flag to permit exit from read loop
         self.goOn                 = True
-        
+
         # initialize the parent class
         threading.Thread.__init__(self)
-        
+
         # give this thread a name
         self.name                 = 'moteProbe@'+self.portname
-        
+
         if self.mode in [self.MODE_EMULATED,self.MODE_IOTLAB]:
             # Non-daemonized moteProbe does not consistently die on close(),
             # so ensure moteProbe does not persist.
             self.daemon           = True
-        
+
         # connect to dispatcher
         dispatcher.connect(
             self._bufferDataToSend,
             signal = 'fromMoteConnector@'+self.portname,
         )
-    
+
         # start myself
         self.start()
-    
+
     #======================== thread ==========================================
-    
+
     def run(self):
         try:
             # log
             log.info("start running")
-        
+
             while self.goOn:     # open serial port
-                
-                # log 
+
+                # log
                 log.info("open port {0}".format(self.portname))
-                
+
                 if   self.mode==self.MODE_SERIAL:
                     self.serial = serial.Serial(self.serialport,self.baudrate)
                     self.serial.setDTR(0)
@@ -185,12 +172,9 @@ class moteProbe(threading.Thread):
                 elif self.mode==self.MODE_IOTLAB:
                     self.serial = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
                     self.serial.connect((self.iotlabmote,20000))
-                elif self.mode==self.MODE_ROVER:
-                    self.serial = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-                    self.serial.connect((self.roverMote.split(':')[0], int(self.roverMote.split(':')[1])))
                 else:
                     raise SystemError()
-                
+
                 while self.goOn: # read bytes from serial port
                     try:
                         if   self.mode==self.MODE_SERIAL:
@@ -198,8 +182,6 @@ class moteProbe(threading.Thread):
                         elif self.mode==self.MODE_EMULATED:
                             rxBytes = self.serial.read()
                         elif self.mode==self.MODE_IOTLAB:
-                            rxBytes = self.serial.recv(1024)
-                        elif self.mode==self.MODE_ROVER:
                             rxBytes = self.serial.recv(1024)
                         else:
                             raise SystemError()
@@ -211,7 +193,7 @@ class moteProbe(threading.Thread):
                     else:
                         for rxByte in rxBytes:
                             if      (
-                                        (not self.busyReceiving)             and 
+                                        (not self.busyReceiving)             and
                                         self.lastRxByte==self.hdlc.HDLC_FLAG and
                                         rxByte!=self.hdlc.HDLC_FLAG
                                     ):
@@ -226,7 +208,7 @@ class moteProbe(threading.Thread):
                                         rxByte!=self.hdlc.HDLC_FLAG
                                     ):
                                 # middle of frame
-                                
+
                                 self.inputBuf           += rxByte
                             elif    (
                                         self.busyReceiving                   and
@@ -237,7 +219,7 @@ class moteProbe(threading.Thread):
                                     log.debug("{0}: end of hdlc frame {1} ".format(self.name, u.formatStringBuf(rxByte)))
                                 self.busyReceiving       = False
                                 self.inputBuf           += rxByte
-                                
+
                                 try:
                                     tempBuf = self.inputBuf
                                     self.inputBuf        = self.hdlc.dehdlcify(self.inputBuf)
@@ -258,9 +240,9 @@ class moteProbe(threading.Thread):
                                             signal        = 'fromMoteProbe@'+self.portname,
                                             data          = [ord(c) for c in self.inputBuf],
                                         )
-                            
+
                             self.lastRxByte = rxByte
-                        
+
                     if self.mode==self.MODE_EMULATED:
                         self.serial.doneReading()
         except Exception as err:
@@ -268,31 +250,31 @@ class moteProbe(threading.Thread):
             print errMsg
             log.critical(errMsg)
             sys.exit(-1)
-    
+
     #======================== public ==========================================
-    
+
     def getPortName(self):
         with self.dataLock:
             return self.portname
-    
+
     def getSerialPortBaudrate(self):
         with self.dataLock:
             return self.baudrate
-    
+
     def close(self):
         self.goOn = False
-    
+
     #======================== private =========================================
-    
+
     def _bufferDataToSend(self,data):
-        
-        # abort for IoT-LAB or ROVER
-        if self.mode==self.MODE_IOTLAB or self.mode==self.MODE_ROVER:
+
+        # abort for IoT-LAB
+        if self.mode==self.MODE_IOTLAB:
             return
-        
+
         # frame with HDLC
         hdlcData = self.hdlc.hdlcify(data)
-        
+
         # add to outputBuf
         with self.outputBufLock:
             self.outputBuf += [hdlcData]

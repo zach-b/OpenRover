@@ -1,15 +1,10 @@
-import sys
 import os
 import logging
-import json
 import signal
-import threading
 
 log = logging.getLogger('openVisualizerApp')
 
-from openvisualizer.eventBus      import eventBusMonitor
 from openvisualizer.moteProbe     import moteProbe
-from openvisualizer.moteConnector import moteConnector
 from openvisualizer.remoteConnector import remoteConnector
 
 from pydispatch import dispatcher
@@ -21,23 +16,14 @@ class OpenVisualizerApp(object):
     top-level functionality for several UI clients.
     '''
 
-    def __init__(self):
+    def __init__(self, PCip, PCport):
         # local variables
-        self.eventBusMonitor      = eventBusMonitor.eventBusMonitor()
-
         # in "hardware" mode, motes are connected to the serial port
         self.moteProbes       = [
                moteProbe.moteProbe(serialport=p) for p in moteProbe.findSerialPorts()
         ]
-        print len(self.moteProbes)
-
-        # create a moteConnector for each moteProbe
-        self.moteConnectors       = [
-            moteConnector.moteConnector(mp.getPortName()) for mp in self.moteProbes
-        ]
-        print self.moteProbes[0].getPortName()
-
-        self.remoteConnector = remoteConnector.remoteConnector()
+        #connect to openvisualiser on the central computer
+        self.remoteConnector = remoteConnector.remoteConnector(app=self, PCip=PCip, PCport=PCport)
 
 
     #======================== public ==========================================
@@ -61,16 +47,19 @@ class OpenVisualizerApp(object):
                moteProbe.moteProbe(serialport=p) for p in moteProbe.findSerialPorts()
         ]
         # create a moteConnector for each moteProbe
-        self.moteConnectors       = [
-            moteConnector.moteConnector(mp.getPortName()) for mp in self.moteProbes
-        ]
+        #self.moteConnectors       = [
+        #    moteConnector.moteConnector(mp.getPortName()) for mp in self.moteProbes
+        #]
+
+    def getMoteProbes(self):
+        return self.moteProbes
 
 import logging.config
 logging.config.fileConfig('logging.conf')
 # log
 log.info('Initializing OpenVisualizerApp')
 #===== start the app
-app      = OpenVisualizerApp()
+app      = OpenVisualizerApp('10.228.40.96', 50000)
 
 #===== add a cli (minimal) interface
 banner  = []
