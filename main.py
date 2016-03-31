@@ -2,6 +2,7 @@ import os
 import logging
 import signal
 import threading
+import time
 
 log = logging.getLogger('openVisualizerApp')
 
@@ -63,6 +64,11 @@ class OpenVisualizerApp(object):
         :param PCip : ip of the central computer
         :param PCport : port of the connection
         '''
+        if self.remoteConnector :
+            self.remoteConnector.close()
+            #leave it time to timeout
+            time.sleep(1)
+            self.remoteConnector=None
         self.remoteConnector = remoteConnector.remoteConnector(app=self, PCip=PCip, PCport=PCport, roverID=roverID)
 
 

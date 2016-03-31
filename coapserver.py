@@ -5,6 +5,7 @@ Created on 08-09-2012
 
 import glob
 import json
+import sys
 from twisted.internet import defer
 from twisted.internet import reactor
 

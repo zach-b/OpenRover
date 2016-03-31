@@ -61,7 +61,7 @@ class remoteConnector():
     def _sendToRemote_handler(self,sender,signal,data):
         #send the data after appending @roverID
         self.publisher.send_json({'sender' : '{0}@{1}'.format(sender,self.roverID), 'signal' : '{0}@{1}'.format(signal,self.roverID), 'data':data})
-        print ('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format(sender, signal, data))
+        print ('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format('{0}@{1}'.format(sender,self.roverID), '{0}@{1}'.format(signal,self.roverID), data))
 
     def _recvdFromRemote(self):
         while self.goOn :
@@ -86,5 +86,3 @@ class remoteConnector():
 
     def close(self):
         self.goOn = False
-
-
