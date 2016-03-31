@@ -1,0 +1,4 @@
+pyserial==2.6
+PyDispatcher==2.0.3
+zmq
+txThings==0.1.4

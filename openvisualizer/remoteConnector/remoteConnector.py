@@ -18,26 +18,27 @@ class remoteConnector():
 
 
     def __init__(self, app, PCip='localhost', PCport=50000):
-
         # log
         log.info("creating instance")
 
         # local variables
         self.stateLock                 = threading.Lock()
-        self.networkPrefix             = None
-        self._subcribedDataForDagRoot  = False
         self.PCip                      = PCip
         self.PCport                    = PCport
+        self.goOn                      = True
 
 
         self.context = zmq.Context()
         self.publisher = self.context.socket(zmq.PUB)
-        self.publisher.bind("tcp://*:50000")
-        print 'publisher started'
+        #Always start the publisher on the same port as the PC (choice)
+        self.publisher.bind("tcp://*:{0}".format(self.PCport))
+        log.info('publisher started')
 
         self.subscriber = self.context.socket(zmq.SUB)
         self.subscriber.connect("tcp://%s:%s" % (self.PCip, self.PCport))
         self.subscriber.setsockopt(zmq.SUBSCRIBE, "")
+        #set timeout on receiving so the thread can terminate when self.goOn == False.
+        self.subscriber.setsockopt(zmq.RCVTIMEO, 1000)
 
         # give this thread a name
         self.name = 'remoteConnector'
@@ -52,31 +53,27 @@ class remoteConnector():
         self.t = threading.Thread(target=self._recvdFromRemote)
         self.t.setDaemon(True)
         self.t.start()
-        print 'subscriber started'
+        log.info('subscriber started')
 
 
-
-    #======================== dispatcher interaction ============================
-    def _printer(self, sender, signal, data):
-        print 'sender : {0}, signal : {1}, data : {2}'.format(sender, signal, data)
-
+    #======================== remote interaction ============================
     def _sendToRemote_handler(self,sender,signal,data):
         self.publisher.send_json({'sender' : sender, 'signal' : signal, 'data':data})
-        self._printer(sender,signal,data)
+        print ('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format(sender, signal, data))
 
     def _recvdFromRemote(self):
-        while True:
-            event = self.subscriber.recv_json()
-            print "\nReceived remote event\n"+event['data'].decode("hex")+"\nDispatching to event bus"
-            #Beware of the unicode-utf8 encoding on python2.7
-            dispatcher.send(signal=event['signal'].encode("utf8"), sender=event['sender'].encode("utf8"), data=event['data'].decode("hex"))
+        while self.goOn :
+            try :
+                event = self.subscriber.recv_json()
+                log.debug("\nReceived remote command\n"+event['data'].decode("hex")+"from sender : "+event['sender']+"\nDispatching to event bus")
+                #Beware of the unicode-utf8 encoding on python2.7
+                dispatcher.send(signal=event['signal'].encode("utf8"), sender=event['sender'].encode("utf8"), data=event['data'].decode("hex"))
+            except zmq.Again :
+                pass
 
     #======================== public ==========================================
 
-    def quit(self):
-        return
-
-    def addRaspi(self, ip):
-        self.iplist.append(ip)
+    def close(self):
+        self.goOn = False
 
 
