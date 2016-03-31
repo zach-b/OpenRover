@@ -57,13 +57,13 @@ class OpenVisualizerApp(object):
     def getMoteProbes(self):
         return self.moteProbes
 
-    def startRemoteConnector(self, PCip, PCport):
+    def startRemoteConnector(self, PCip, PCport, roverID):
         '''Start the remote connection when infos received by coap server
 
         :param PCip : ip of the central computer
         :param PCport : port of the connection
         '''
-        self.remoteConnector = remoteConnector.remoteConnector(app=self, PCip=PCip, PCport=PCport)
+        self.remoteConnector = remoteConnector.remoteConnector(app=self, PCip=PCip, PCport=PCport, roverID=roverID)
 
 
 # ======================== main ==========================================

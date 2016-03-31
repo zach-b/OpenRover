@@ -17,7 +17,7 @@ from pydispatch import dispatcher
 class remoteConnector():
 
 
-    def __init__(self, app, PCip='localhost', PCport=50000):
+    def __init__(self, app, PCip, PCport, roverID):
         # log
         log.info("creating instance")
 
@@ -25,6 +25,7 @@ class remoteConnector():
         self.stateLock                 = threading.Lock()
         self.PCip                      = PCip
         self.PCport                    = PCport
+        self.roverID                   = roverID
         self.goOn                      = True
 
 
@@ -58,7 +59,8 @@ class remoteConnector():
 
     #======================== remote interaction ============================
     def _sendToRemote_handler(self,sender,signal,data):
-        self.publisher.send_json({'sender' : sender, 'signal' : signal, 'data':data})
+        #send the data after appending @roverID
+        self.publisher.send_json({'sender' : '{0}@{1}'.format(sender,self.roverID), 'signal' : '{0}@{1}'.format(signal,self.roverID), 'data':data})
         print ('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format(sender, signal, data))
 
     def _recvdFromRemote(self):
@@ -66,8 +68,17 @@ class remoteConnector():
             try :
                 event = self.subscriber.recv_json()
                 log.debug("\nReceived remote command\n"+event['data'].decode("hex")+"from sender : "+event['sender']+"\nDispatching to event bus")
-                #Beware of the unicode-utf8 encoding on python2.7
-                dispatcher.send(signal=event['signal'].encode("utf8"), sender=event['sender'].encode("utf8"), data=event['data'].decode("hex"))
+                signal = event['signal']
+                sender = event['sender']
+                # check that it is for this rover
+                if signal.endswith('@{0}'.format(self.roverID)) and sender.endswith('@{0}'.format(self.roverID)) :
+                    #remove the roverID
+                    signal = signal[:-(len(self.roverID)+1)]
+                    sender = sender[:-(len(self.roverID)+1)]
+                    #Beware of the encoding on python 2
+                    signal.encode("utf8")
+                    sender.encode("utf8")
+                    dispatcher.send(signal=signal, sender=sender, data=event['data'].decode("hex"))
             except zmq.Again :
                 pass
 

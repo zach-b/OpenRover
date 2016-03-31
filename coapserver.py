@@ -66,7 +66,8 @@ class PCinfos(resource.CoAPResource):
         try :
             PCip = request.payload.split(':')[0]
             PCport = request.payload.split(':')[1]
-            self.app.startRemoteConnector(PCip, PCport)
+            roverID = request.payload.split(':')[2]
+            self.app.startRemoteConnector(PCip, PCport, roverID)
         except :
             print "Unexpected error:", sys.exc_info()[0]
             pass
