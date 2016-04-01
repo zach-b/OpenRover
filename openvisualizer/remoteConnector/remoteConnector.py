@@ -61,13 +61,13 @@ class remoteConnector():
     def _sendToRemote_handler(self,sender,signal,data):
         #send the data after appending @roverID
         self.publisher.send_json({'sender' : '{0}@{1}'.format(sender,self.roverID), 'signal' : '{0}@{1}'.format(signal,self.roverID), 'data':data})
-        print ('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format('{0}@{1}'.format(sender,self.roverID), '{0}@{1}'.format(signal,self.roverID), data))
+        log.debug('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format('{0}@{1}'.format(sender,self.roverID), '{0}@{1}'.format(signal,self.roverID), data))
 
     def _recvdFromRemote(self):
         while self.goOn :
             try :
                 event = self.subscriber.recv_json()
-                log.debug("\nReceived remote command\n"+event['data'].decode("hex")+"from sender : "+event['sender']+"\nDispatching to event bus")
+                log.debug("\nReceived remote command\n"+event['data']+"from sender : "+event['sender']+"\nDispatching to event bus")
                 signal = event['signal']
                 sender = event['sender']
                 # check that it is for this rover
@@ -75,7 +75,7 @@ class remoteConnector():
                     #remove the roverID
                     signal = signal[:-(len(self.roverID)+1)]
                     sender = sender[:-(len(self.roverID)+1)]
-                    #Beware of the encoding on python 2
+                    #Python 2 and strings...
                     signal.encode("utf8")
                     sender.encode("utf8")
                     dispatcher.send(signal=signal, sender=sender, data=event['data'].decode("hex"))
