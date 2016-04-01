@@ -4,9 +4,9 @@ import signal
 import threading
 import time
 
-log = logging.getLogger('openVisualizerApp')
+log = logging.getLogger('openRoverApp')
 
-import openVisualizerApp
+import openRoverApp
 import coapserver
 
 # ======================== main ==========================================
@@ -16,12 +16,12 @@ logging.config.fileConfig('logging.conf')
 # log
 log.info('Initializing OpenVisualizerApp')
 #===== start the app
-app      = openVisualizerApp.OpenVisualizerApp()
+app      = openRoverApp.OpenRoverApp()
 #===== start the coap server
 coapsrv = coapserver.coapServer(app)
 #===== add a cli (minimal) interface
 banner  = []
-banner += ['OpenVisualizer']
+banner += ['OpenRover']
 banner += ['enter \'q\' to exit']
 banner  = '\n'.join(banner)
 print banner

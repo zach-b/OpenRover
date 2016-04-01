@@ -1,14 +1,14 @@
 import logging
 import time
 
-log = logging.getLogger('openVisualizerApp')
+log = logging.getLogger('openRoverApp')
 
 from openvisualizer.moteProbe     import moteProbe
 from openvisualizer.remoteConnector import remoteConnector
 
 
 
-class OpenVisualizerApp(object):
+class OpenRoverApp(object):
     '''
     Provides an application model for OpenVisualizer. Provides common,
     top-level functionality for several UI clients.
