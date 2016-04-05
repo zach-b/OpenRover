@@ -164,9 +164,12 @@ class moteProbe(threading.Thread):
                 log.info("open port {0}".format(self.portname))
 
                 if   self.mode==self.MODE_SERIAL:
-                    self.serial = serial.Serial(self.serialport,self.baudrate)
-                    self.serial.setDTR(0)
-                    self.serial.setRTS(0)
+                    try :
+                        self.serial = serial.Serial(self.serialport,self.baudrate)
+                        self.serial.setDTR(0)
+                        self.serial.setRTS(0)
+                    except:
+                        self.close()
                 elif self.mode==self.MODE_EMULATED:
                     self.serial = self.emulatedMote.bspUart
                 elif self.mode==self.MODE_IOTLAB:

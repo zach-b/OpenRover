@@ -1,104 +1,61 @@
-'''
-Created on 08-09-2012
-@author: Maciej Wasilak
-'''
-
+import os
+import sys
+here = sys.path[0]
+sys.path.insert(0, os.path.join(here,'..'))
 import glob
 import json
-import sys
-from twisted.internet import defer
-from twisted.internet import reactor
+import logging
+log = logging.getLogger('coapServer')
+log.setLevel(logging.ERROR)
+log.addHandler(logging.NullHandler())
 
-import txthings.resource as resource
-import txthings.coap as coap
-import threading
-
-
-class CoreResource(resource.CoAPResource):
-    """
-    Example Resource that provides list of links hosted by a server.
-    Normally it should be hosted at /.well-known/core
-    Resource should be initialized with "root" resource, which can be used
-    to generate the list of links.
-    For the response, an option "Content-Format" is set to value 40,
-    meaning "application/link-format". Without it most clients won't
-    be able to automatically interpret the link format.
-    Notice that self.visible is not set - that means that resource won't
-    be listed in the link format it hosts.
-    """
-
-    def __init__(self, root):
-        resource.CoAPResource.__init__(self)
-        self.root = root
-
-    def render_GET(self, request):
-        data = []
-        self.root.generateResourceList(data, "")
-        payload = ",".join(data)
-        print payload
-        response = coap.Message(code=coap.CONTENT, payload=payload)
-        response.opt.content_format = coap.media_types_rev['application/link-format']
-        return defer.succeed(response)
+from   coap   import    coap,                    \
+                        coapResource,            \
+                        coapDefines as d
 
 
-class MoteResource (resource.CoAPResource):
-    def __init__(self):
-        resource.CoAPResource.__init__(self)
-        self.visible = True
-        self.observable = True
+class pcInfo(coapResource.coapResource):
 
-    def render_GET(self, request):
+    def __init__(self, app):
+        # initialize parent class
+        self.app = app
+        coapResource.coapResource.__init__(
+            self,
+            path = 'pcinfo',
+        )
 
-        response = coap.Message(code=coap.CONTENT, payload=self.listmotes())
-        return defer.succeed(response)
+    def GET(self,options=[]):
+
+        log.info('GET received')
+
+        respCode        = d.COAP_RC_2_05_CONTENT
+        respOptions     = []
+        respPayload     = [ord(b) for b in self.listmotes()]
+
+        return (respCode,respOptions,respPayload)
+
+    def PUT(self,options=[],payload=None):
+
+        asciipayload = ''.join([chr(i) for i in payload])
+
+        print('PUT RECEIVED, payload :' + asciipayload)
+
+        respCode = d.COAP_RC_2_05_CONTENT
+        respOptions = []
+        respPayload = [ord(b) for b in self.listmotes()]
+
+        try :
+            PCip = asciipayload.split(';')[0]
+            PCport = asciipayload.split(';')[1]
+            roverID = asciipayload.split(';')[2]
+            self.app.startRemoteConnector(PCip, PCport, roverID)
+        except :
+            log.warning("Unexpected error:", sys.exc_info()[0])
+            pass
+
+        return (respCode, respOptions, respPayload)
+
 
     def listmotes(self):
         serialList = glob.glob('/dev/ttyUSB*')   # Get all Serial ports
         return json.dumps([serial for serial in serialList])
-
-class PCinfos(resource.CoAPResource):
-    def __init__(self, app):
-        resource.CoAPResource.__init__(self)
-        self.visible = True
-        self.observable = True
-        self.app = app
-
-    def render_PUT(self, request):
-        try :
-            PCip = request.payload.split(':')[0]
-            PCport = request.payload.split(':')[1]
-            roverID = request.payload.split(':')[2]
-            self.app.startRemoteConnector(PCip, PCport, roverID)
-        except :
-            print "Unexpected error:", sys.exc_info()[0]
-            pass
-        response = coap.Message(code=coap.CONTENT, payload=self.listmotes())
-        return defer.succeed(response)
-
-
-    def listmotes(self):
-        serialList = glob.glob('/dev/ttyUSB*')  # Get all Serial ports
-        return json.dumps([serial for serial in serialList])
-
-
-class coapServer() :
-    def __init__(self, app):
-        self.app = app
-        root = resource.CoAPResource()
-        well_known = resource.CoAPResource()
-        root.putChild('.well-known', well_known)
-        core = CoreResource(root)
-        well_known.putChild('core', core)
-
-        mote = MoteResource()
-        root.putChild('motes', mote)
-
-        pcinfo = PCinfos(self.app)
-        root.putChild('pcinfo', pcinfo)
-
-        endpoint = resource.Endpoint(root)
-        reactor.listenUDP(coap.COAP_PORT, coap.Coap(endpoint)) #, interface="::")
-
-        coapthread = threading.Thread(target=reactor.run, args=(False,))
-        coapthread.start()
-

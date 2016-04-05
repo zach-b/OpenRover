@@ -36,6 +36,7 @@ class remoteConnector():
         log.info('publisher started')
 
         self.subscriber = self.context.socket(zmq.SUB)
+        print ("tcp://%s:%s" % (self.PCip, self.PCport))
         self.subscriber.connect("tcp://%s:%s" % (self.PCip, self.PCport))
         self.subscriber.setsockopt(zmq.SUBSCRIBE, "")
         #set timeout on receiving so the thread can terminate when self.goOn == False.
@@ -60,8 +61,9 @@ class remoteConnector():
     #======================== remote interaction ============================
     def _sendToRemote_handler(self,sender,signal,data):
         #send the data after appending @roverID
+        print 'test'
         self.publisher.send_json({'sender' : '{0}@{1}'.format(sender,self.roverID), 'signal' : '{0}@{1}'.format(signal,self.roverID), 'data':data})
-        log.debug('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format('{0}@{1}'.format(sender,self.roverID), '{0}@{1}'.format(signal,self.roverID), data))
+        print('message sent to remote host :\n sender : {0}, signal : {1}, data : {2}'.format('{0}@{1}'.format(sender,self.roverID), '{0}@{1}'.format(signal,self.roverID), data))
 
     def _recvdFromRemote(self):
         while self.goOn :

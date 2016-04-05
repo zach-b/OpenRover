@@ -17,9 +17,7 @@ class OpenRoverApp(object):
     def __init__(self):
         # local variables
         # in "hardware" mode, motes are connected to the serial port
-        self.moteProbes       = [
-               moteProbe.moteProbe(serialport=p) for p in moteProbe.findSerialPorts()
-        ]
+        self.moteProbes       = []
         self.remoteConnector = None
 
 
@@ -34,22 +32,6 @@ class OpenRoverApp(object):
         if self.remoteConnector :
             self.remoteConnector.close()
 
-    def refreshMotes(self, roverMotes):
-        '''Connect the list of roverMotes to openvisualiser.
-
-        :param roverMotes : list of the roverMotes to add
-        '''
-        for probe in self.moteProbes:
-            probe.close()
-        # in "hardware" mode, motes are connected to the serial port
-        self.moteProbes       = [
-               moteProbe.moteProbe(serialport=p) for p in moteProbe.findSerialPorts()
-        ]
-        # create a moteConnector for each moteProbe
-        #self.moteConnectors       = [
-        #    moteConnector.moteConnector(mp.getPortName()) for mp in self.moteProbes
-        #]
-
     def getMoteProbes(self):
         return self.moteProbes
 
@@ -59,9 +41,17 @@ class OpenRoverApp(object):
         :param PCip : ip of the central computer
         :param PCport : port of the connection
         '''
+        for probe in self.moteProbes:
+            probe.close()
+        # in "hardware" mode, motes are connected to the serial port
+        self.moteProbes = [
+            moteProbe.moteProbe(serialport=p) for p in moteProbe.findSerialPorts()
+            ]
+
         if self.remoteConnector :
             self.remoteConnector.close()
             #leave it time to timeout
             time.sleep(1)
             self.remoteConnector=None
         self.remoteConnector = remoteConnector.remoteConnector(app=self, PCip=PCip, PCport=PCport, roverID=roverID)
+

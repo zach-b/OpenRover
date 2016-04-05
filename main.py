@@ -18,7 +18,8 @@ log.info('Initializing OpenVisualizerApp')
 #===== start the app
 app      = openRoverApp.OpenRoverApp()
 #===== start the coap server
-coapsrv = coapserver.coapServer(app)
+c = coapserver.coap.coap()
+c.addResource(coapserver.pcInfo(app))
 #===== add a cli (minimal) interface
 banner  = []
 banner += ['OpenRover']
