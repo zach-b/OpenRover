@@ -38,7 +38,7 @@ class pcInfo(coapResource.coapResource):
 
         asciipayload = ''.join([chr(i) for i in payload])
 
-        print('PUT RECEIVED, payload :' + asciipayload)
+        log.info('PUT RECEIVED, payload :' + asciipayload)
 
         respCode = d.COAP_RC_2_05_CONTENT
         respOptions = []
