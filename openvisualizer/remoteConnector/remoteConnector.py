@@ -32,12 +32,16 @@ class remoteConnector():
         self.context = zmq.Context()
         self.publisher = self.context.socket(zmq.PUB)
         #Always start the publisher on the same port as the PC (choice)
+        self.publisher.setsockopt(zmq.IPV6, 1)
+        self.publisher.setsockopt(zmq.IPV4ONLY, 0)
         self.publisher.bind("tcp://*:{0}".format(self.PCport))
         log.info('publisher started')
 
         self.subscriber = self.context.socket(zmq.SUB)
-        self.subscriber.connect("tcp://%s:%s" % (self.PCip, self.PCport))
+        self.subscriber.setsockopt(zmq.IPV6, 1)
+        self.subscriber.setsockopt(zmq.IPV4ONLY, 0) #needed on old pyzmq versions
         self.subscriber.setsockopt(zmq.SUBSCRIBE, "")
+        self.subscriber.connect("tcp://%s:%s" % (self.PCip, self.PCport))
         #set timeout on receiving so the thread can terminate when self.goOn == False.
         self.subscriber.setsockopt(zmq.RCVTIMEO, 1000)
 
